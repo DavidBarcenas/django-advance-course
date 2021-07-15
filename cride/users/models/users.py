@@ -1,12 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 
 from cride.utils.models import CRideModel
 
 
 class User(CRideModel, AbstractUser):
     """User model
-    
+      
     Extends from Django's Abstract User, change the username field
     to email and add some extra fields.
     """
@@ -19,7 +20,19 @@ class User(CRideModel, AbstractUser):
         }
     )
 
-    phone_number = models.CharField(max_length=17, blank=True)
+    phone_regex = RegexValidator(
+        regex = r'\+?1?\d{9,15}$',
+        message = (
+            'Phone number must be entered in the format: 5588996658. '
+            'Up to 15 digits allowed.'
+        )
+    )
+
+    phone_number = models.CharField(
+        validators = [phone_regex],
+        max_length = 17, 
+        blank = True
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
@@ -38,3 +51,11 @@ class User(CRideModel, AbstractUser):
         default = False,
         help_text = 'Set to true when the user have verified its email address.'
     )
+
+    def __str__(self) -> str:
+        """Return username"""
+        return self.username
+
+    def get_short_name(self) -> str:
+        """Return username"""
+        return self.username
