@@ -27,5 +27,5 @@ class Profile(CRideModel):
         help_text="User's reputation based on the rides taken and offered."
     )
 
-    def __str__(self) -> str:
-        return self.user
+    def __str__(self):
+        return self.user.username
