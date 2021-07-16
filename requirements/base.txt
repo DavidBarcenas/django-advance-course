@@ -16,6 +16,9 @@ argon2-cffi==20.1.0
 # Static files
 whitenoise==4.1.2
 
+# Django REST framework
+djangorestframework==3.11.0
+
 # Celery
 redis>=3.2.0
 django-redis==4.10.0
