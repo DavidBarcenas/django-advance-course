@@ -52,6 +52,8 @@ class CustomUserAdmin(UserAdmin):
 
     inlines = (ProfileInline,)
 
+    list_display_links = ('email', 'username')
+
     list_display = (
         'email',
         'username',
