@@ -41,7 +41,7 @@ class Circle(CRideModel):
         help_text = 'Limited circles can group up to a fixed number of members.'
     )
 
-    memebers_limit = models.PositiveIntegerField(
+    members_limit = models.PositiveIntegerField(
         default = 0,
         help_text = 'If circle is limited, this will be the limit on the number of members.'
     )
@@ -50,7 +50,7 @@ class Circle(CRideModel):
         """Return circle name"""
         return self.name
 
-    class Meta(CRideModel.META):
+    class Meta(CRideModel.Meta):
         """Class Meta"""
 
         ordering = ['-rides_taken', '-rides_offered']
