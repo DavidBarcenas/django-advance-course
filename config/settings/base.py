@@ -146,7 +146,7 @@ ADMINS = [
 MANAGERS = ADMINS
 
 # Celery
-INSTALLED_APPS += ['cride.taskapp.celery.CeleryAppConfig']
+INSTALLED_APPS += ['cride.taskapp.celery.CeleryAppConfig',]
 if USE_TZ:
     CELERY_TIMEZONE = TIME_ZONE
 CELERY_BROKER_URL = env('CELERY_BROKER_URL')
@@ -161,5 +161,10 @@ CELERYD_TASK_SOFT_TIME_LIMIT = 60
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
-    )
+    ), 
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 5
 }
