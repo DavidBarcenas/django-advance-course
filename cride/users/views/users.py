@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 
 from cride.users.serializers import (
     UserLoginSerializer, 
@@ -9,13 +10,27 @@ from cride.users.serializers import (
     AccountVerificationSerializer
 )
 
-
-class UserLoginAPIView(APIView):
-    """User Login API View"""
+class UserViewSet(viewsets.GenericViewSet):
+    """User view set
     
-    def post(self, request, format=None):
-        """Handle HTTP POST request"""
+    Handle sign up, login and account verification.
+    """
 
+    @action(detail=False, methods=['post'])
+    def signup(self, request):
+        """User sign up."""
+        
+        serializer = UserSignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.save()
+        data = UserModelSerializer(user).data,
+
+        return Response(data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'])
+    def login(slef, request):
+        """User sign in."""
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -25,30 +40,11 @@ class UserLoginAPIView(APIView):
             'access_token': token
         }
 
-        return Response(data, status=status.HTTP_201_CREATED)
+        return Response(data, status=status.HTTP_200_OK)
 
-
-class UserSignUpAPIView(APIView):
-    """User Sign Up API View"""
-    
-    def post(self, request, format=None):
-        """Handle HTTP POST request"""
-
-        serializer = UserSignUpSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user = serializer.save()
-        data = UserModelSerializer(user).data,
-
-        return Response(data, status=status.HTTP_201_CREATED)
-
-
-class AccountVerificationAPIView(APIView):
-    """View to verify the token."""
-
-    def post(self, request, format=None):
-        """Handle HTTP POST request"""
-
+    @action(detail=False, methods=['post'])
+    def verify(self, request):
+        """View to verify the token."""
         serializer = AccountVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
