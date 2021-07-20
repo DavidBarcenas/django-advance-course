@@ -36,6 +36,8 @@ class CircleModelSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """Ensureboth members_limit and is_liited are present."""
 
+        # TODO:: Validar si hacen un patch
+
         members_limit = data.get('members_limit', None)
         is_limited = data.get('is_limited', None)
 
