@@ -18,6 +18,7 @@ whitenoise==4.1.2
 
 # Django REST framework
 djangorestframework==3.11.0
+django-filter
 
 # JWT
 pyjwt==2.1.0
