@@ -29,7 +29,7 @@ class Invitation(CRideModel):
         help_text = 'User that used the code to enter the circle'
     )
 
-    circle = models.ForeignKey('circle.Circle', on_delete=models.CASCADE)
+    circle = models.ForeignKey('circles.Circle', on_delete=models.CASCADE)
 
     used = models.BooleanField(default=True)
     used_at = models.DateTimeField(blank=True, null=True)
