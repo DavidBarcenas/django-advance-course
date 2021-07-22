@@ -1,15 +1,16 @@
-from rest_framework import mixins, viewsets
+from rest_framework import status, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from cride.circles.models import Circle, Membership, Invitation
-from cride.circles.permissions.memberships import IsActiveCircleMember
-from cride.circles.serializers.memberships import MembershipModelSerializer
+from cride.circles.permissions.memberships import IsActiveCircleMember, IsSelfMember
+from cride.circles.serializers.memberships import AddMemberSerializer, MembershipModelSerializer
 
 
 class MembershipViewSet(mixins.ListModelMixin,
+                        mixins.CreateModelMixin,
                         mixins.RetrieveModelMixin,
                         mixins.DestroyModelMixin,
                         viewsets.GenericViewSet):
@@ -27,7 +28,15 @@ class MembershipViewSet(mixins.ListModelMixin,
 
     def get_permissions(self):
         """Assign permissions based on action"""
-        permissions = [IsAuthenticated, IsActiveCircleMember]
+
+        permissions = [IsAuthenticated]
+
+        if self.action != 'create':
+            permissions.append(IsActiveCircleMember)
+
+        if self.action == 'invitations':
+            permissions.append(IsSelfMember)
+
         return [p() for p in permissions]
 
     def get_queryset(self):
@@ -88,3 +97,19 @@ class MembershipViewSet(mixins.ListModelMixin,
         }
 
         return Response(data)
+
+    def create(self, request, *args, **kwargs):
+        """Handle member creation from invitation code."""
+
+        serializer = AddMemberSerializer(
+            data = request.data,
+            context = {
+                'circle': self.circle,
+                'request': request
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        member = serializer.save()
+
+        data = self.get_serializer(member).data
+        return Response(data, status=status.HTTP_201_CREATED)
