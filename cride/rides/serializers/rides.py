@@ -5,6 +5,19 @@ from datetime import timedelta
 
 from cride.rides.models.rides import Ride
 
+
+class RideModelSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Ride
+        fields = '__all__'
+        read_only_fields = (
+            'offered_in', 
+            'passengers', 
+            'rating', 
+        )
+
+
 class CreateRideSerializer(serializers.ModelSerializer):
     """create ride serializer"""
 
