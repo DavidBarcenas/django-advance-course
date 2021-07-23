@@ -3,8 +3,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 
 from cride.circles.models import Circle
-from cride.circles.permissions import IsActiveCircleMember
 from cride.rides.serializers import CreateRideSerializer
+from cride.circles.permissions.memberships import IsActiveCircleMember
 
 
 class RideViewSet(mixins.CreateModelMixin,
@@ -20,3 +20,11 @@ class RideViewSet(mixins.CreateModelMixin,
         self.circle = get_object_or_404(Circle, slug_name=slug_name)
 
         return super(RideViewSet, self).dispatch(request, *args, **kwargs)
+
+    def get_serializer_context(self):
+        """Add circle to serializer context."""
+
+        context = super(RideViewSet, self).get_serializer_context()
+        context['circle'] = self.circle
+
+        return context
