@@ -1,3 +1,4 @@
+from cride.rides import serializers
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -8,13 +9,19 @@ from django.utils import timezone
 from datetime import timedelta
 
 from cride.circles.models import Circle
-from cride.rides.permissions.rides import IsRideOwner
-from cride.rides.serializers import CreateRideSerializer, RideModelSerializer, JoinRideSerializer
+from cride.rides.permissions.rides import IsNotRideOwner, IsRideOwner
 from cride.circles.permissions.memberships import IsActiveCircleMember
+from cride.rides.serializers import (
+    CreateRideSerializer, 
+    RideModelSerializer, 
+    JoinRideSerializer,
+    EndRideSerializer,
+)
 
 
 class RideViewSet(mixins.CreateModelMixin,
                   mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
                   viewsets.GenericViewSet):
 
@@ -33,12 +40,14 @@ class RideViewSet(mixins.CreateModelMixin,
 
     def get_permissions(self):
         """Assign permission based on action."""
-        permission = [IsAuthenticated, IsActiveCircleMember]
+        permissions = [IsAuthenticated, IsActiveCircleMember]
 
-        if self.action in ['update', 'partial_update']:
-            permission.append(IsRideOwner)
+        if self.action in ['update', 'partial_update', 'finish']:
+            permissions.append(IsRideOwner)
+        if action == 'join':
+            permissions.append(IsNotRideOwner)
 
-        return [p() for p in permission]
+        return [p() for p in permissions]
 
 
     def get_serializer_context(self):
@@ -56,22 +65,27 @@ class RideViewSet(mixins.CreateModelMixin,
             return CreateRideSerializer
         if self.action == 'update':
             return JoinRideSerializer
+        if self.action == 'finish':
+            return EndRideSerializer
         
         return RideModelSerializer
 
     def get_queryset(self):
         """Return active circle's rides."""
-        offset = timezone.now() + timedelta(minutes=10)
-        return self.circle.ride_set.filter(
-            departure_date__gte = offset,
-            available_seats__gte = 1
-        )
+        if self.action != 'finish':
+            offset = timezone.now() + timedelta(minutes=10)
+            return self.circle.ride_set.filter(
+                departure_date__gte = offset,
+                available_seats__gte = 1
+            )
+        return self.circle.ride_set.all()
 
     @action(detail=True, methods=['post'])
     def join(self, request, *args, **kwargs):
         """Add requesting user to ride"""
         ride = self.get_object()
-        serializer = JoinRideSerializer(
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(
             ride,
             data = {'passenger': request.user.pk},
             context = {'ride': ride, 'circle':self.circle},
@@ -82,3 +96,21 @@ class RideViewSet(mixins.CreateModelMixin,
         data = RideModelSerializer(ride).data
 
         return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def finish(self, request, *args, **kwargs):
+        """Call by owners to finish a ride."""
+        ride = self.get_object()
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(
+            ride,
+            data = {'is_active': False, 'current_time': timezone.now()},
+            context = self.get_serializer_context(),
+            partial = True
+        )
+        serializer.is_valid(raise_exception=True)
+        ride = serializer.save()
+        data = RideModelSerializer(ride).data
+
+        return Response(data, status=status.HTTP_200_OK)
+
