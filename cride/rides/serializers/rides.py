@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from cride.rides.models.rides import Ride
+from cride.users.models.users import User
 from cride.users.serializers.users import UserModelSerializer
 
 
@@ -96,3 +97,66 @@ class CreateRideSerializer(serializers.ModelSerializer):
         return ride
 
 
+class JoinRideSerializer(serializers.ModelSerializer):
+    passenger = serializers.IntegerField()
+
+    class Meta:
+        model = Ride
+        fields = ('passenger',)
+
+    def validate_passenger(self, data):
+        """Verify passenger exists and is a circle member."""
+        try:
+            user = User.objects.get(pk=data)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid passenger')
+
+        circle = self.context['circle']
+
+        try:
+            membership = Membership.objects.get(user=user, circle=circle, is_active=True)
+        except Membership.DoesNotExist:
+            raise serializers.ValidationError('User is not an active member of the circle.')
+
+        self.context['user'] = user
+        self.context['member'] = membership
+        return data
+
+    def validate(self, data):
+        """Verify rides allow new passengers"""
+        ride = self.context['ride']
+
+        if ride.departure_date <= timezone.now():
+            raise serializers.ValidationError("You can't join this ride now.")
+
+        if ride.available_seats < 1:
+            raise serializers.ValidationError("Ride is already full")
+
+        if Ride.objects.filter(passengers__pk=data['passenger']):
+            raise serializers.ValidationError('Passenger is already in this trip.')
+
+        return data
+
+    def update(self, instance, data):
+        """Add passenger to ride, and update stats."""
+        ride = self.context['ride']
+        user = self.context['user']
+
+        ride.passengers.add(user)
+
+        # profile
+        profile = user.profile
+        profile.rides_taken += 1
+        profile.save()
+
+        # membership
+        member = self.context['member']
+        member.rides_taken += 1
+        member.save()
+
+        # circle
+        circle = self.context['circle']
+        circle.rides_taken += 1
+        circle.save()
+
+        return ride
